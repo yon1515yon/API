@@ -4,10 +4,11 @@ include_once('config.php');
 include_once('err_handler.php');
 include_once('db_connect.php');
 include_once('functions.php');
-
 include_once('find_token.php');
 
+include_once("SxGeo.php");
 
+$SxGeo = new SxGeo('SxGeoCity.dat');
 //добавить производителя
 if(preg_match_all("/^(add_producer)$/ui", $_GET['type'])){
     if(!isset($_GET['name'])){
@@ -190,7 +191,7 @@ else if(preg_match_all("/^(add_exhibit)$/ui", $_GET['type'])){
 }    
 
 
-// обновить куратора
+// обновить имя производителя
 
 else if(preg_match_all("/^(update_producer_name)$/ui", $_GET['type'])){
     if(!isset($_GET['new_name'])){
@@ -535,7 +536,7 @@ echo ajax_echo(
 exit();
 }
 
-//Вывод по тематике 
+//Вывод по выдержке
 
 if(preg_match_all("/^(exhibits_by_excerpt)$/ui", $_GET['type'])){
 
@@ -584,14 +585,19 @@ echo ajax_echo(
 exit();
 }
 
-if(preg_match_all("/^(users_ip|ip)$/ui", $_GET['type'])){
+if(preg_match_all("/^(user_ip|ip)$/ui", $_GET['type'])){
     $ip = get_ip();
-    $query = "INSERT INTO ip_logs (`ip`) VALUES ('".$ip."')";
+    $city = $SxGeo->getCityFull($ip);
+    #var_dump($city);
+    $GEO = ($city['city'] ['name_ru']);
+    $country=(', ' .$city ['country'] ['name_ru']);
+    $citycountry = $GEO . $country;
+    $query = "INSERT INTO `ip_logs` (`GEO`, `ip`) VALUES ('".$citycountry."', '".$ip."')";
     $res=mysqli_query($connection, $query);
 
     $query2 = "SELECT COUNT(id) FROM `ip_logs` WHERE ip = '".$ip."'";
     $res2 =  mysqli_query($connection, $query2);
-    
+
     $arr_res = array();
     $rows = mysqli_num_rows($res2);
 
@@ -599,13 +605,13 @@ if(preg_match_all("/^(users_ip|ip)$/ui", $_GET['type'])){
         $row = mysqli_fetch_assoc($res2);
         array_push($arr_res, $row);
     }
-    
     echo ajax_echo(
         "Уcпех!",
         "Кол-во запросов с IP адреса",
         false,
         "SUCCESS",
-        $arr_res
+        $arr_res,
+        
     );
     //echo strval($res2);
     exit();
